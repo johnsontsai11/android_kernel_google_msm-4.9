@@ -122,3 +122,10 @@ kernel/configs/android-*.cfg
 
 # Qualcomm out-of-tree audio drivers
 #/techpack/audio
+out/Makefile
+
+# Build output
+out/
+
+# Patch rejects
+*.rej
