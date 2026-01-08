@@ -254,6 +254,8 @@ static void __kprobes setup_singlestep(struct kprobe *p,
 
 		/* IRQs and single stepping do not mix well. */
 		kprobes_save_local_irqflag(kcb, regs);
+		/* Disable preemption to prevent WARN_ON in enable_debug_monitors */
+		preempt_disable();
 		kernel_enable_single_step(regs);
 		instruction_pointer_set(regs, slot);
 	} else {
@@ -335,6 +337,8 @@ int __kprobes kprobe_fault_handler(struct pt_regs *regs, unsigned int fsr)
 			BUG();
 
 		kernel_disable_single_step();
+		/* Re-enable preemption after disabling single-step in fault path */
+		preempt_enable();
 
 		if (kcb->kprobe_status == KPROBE_REENTER)
 			restore_previous_kprobe(kcb);
@@ -459,6 +463,8 @@ kprobe_single_step_handler(struct pt_regs *regs, unsigned int esr)
 	if (retval == DBG_HOOK_HANDLED) {
 		kprobes_restore_local_irqflag(kcb, regs);
 		kernel_disable_single_step();
+		/* Re-enable preemption now that single-step is complete */
+		preempt_enable();
 
 		post_kprobe_handler(kcb, regs);
 	}
