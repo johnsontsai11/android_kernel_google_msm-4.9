@@ -152,12 +152,14 @@ static void __kprobes save_previous_kprobe(struct kprobe_ctlblk *kcb)
 {
 	kcb->prev_kprobe.kp = kprobe_running();
 	kcb->prev_kprobe.status = kcb->kprobe_status;
+	kcb->prev_kprobe.ss_ctx = kcb->ss_ctx;
 }
 
 static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
 {
 	__this_cpu_write(current_kprobe, kcb->prev_kprobe.kp);
 	kcb->kprobe_status = kcb->prev_kprobe.status;
+	kcb->ss_ctx = kcb->prev_kprobe.ss_ctx;
 }
 
 static void __kprobes set_current_kprobe(struct kprobe *p)
@@ -234,6 +236,7 @@ static void __kprobes setup_singlestep(struct kprobe *p,
 				       struct kprobe_ctlblk *kcb, int reenter)
 {
 	unsigned long slot;
+	unsigned long flags;
 
 	if (reenter) {
 		save_previous_kprobe(kcb);
@@ -256,7 +259,9 @@ static void __kprobes setup_singlestep(struct kprobe *p,
 		kprobes_save_local_irqflag(kcb, regs);
 		/* Disable preemption to prevent WARN_ON in enable_debug_monitors */
 		preempt_disable();
+		local_irq_save(flags);
 		kernel_enable_single_step(regs);
+		local_irq_restore(flags);
 		instruction_pointer_set(regs, slot);
 	} else {
 		/* insn simulation */
@@ -321,6 +326,7 @@ int __kprobes kprobe_fault_handler(struct pt_regs *regs, unsigned int fsr)
 {
 	struct kprobe *cur = kprobe_running();
 	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
+	unsigned long flags;
 
 	switch (kcb->kprobe_status) {
 	case KPROBE_HIT_SS:
@@ -336,7 +342,9 @@ int __kprobes kprobe_fault_handler(struct pt_regs *regs, unsigned int fsr)
 		if (!instruction_pointer(regs))
 			BUG();
 
+		local_irq_save(flags);
 		kernel_disable_single_step();
+		local_irq_restore(flags);
 		/* Re-enable preemption after disabling single-step in fault path */
 		preempt_enable();
 
@@ -453,6 +461,7 @@ kprobe_single_step_handler(struct pt_regs *regs, unsigned int esr)
 {
 	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
 	int retval;
+	unsigned long flags;
 
 	if (user_mode(regs))
 		return DBG_HOOK_ERROR;
@@ -462,7 +471,9 @@ kprobe_single_step_handler(struct pt_regs *regs, unsigned int esr)
 
 	if (retval == DBG_HOOK_HANDLED) {
 		kprobes_restore_local_irqflag(kcb, regs);
+		local_irq_save(flags);
 		kernel_disable_single_step();
+		local_irq_restore(flags);
 		/* Re-enable preemption now that single-step is complete */
 		preempt_enable();
 

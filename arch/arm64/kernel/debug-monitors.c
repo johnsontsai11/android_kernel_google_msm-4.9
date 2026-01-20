@@ -255,12 +255,8 @@ static int single_step_handler(unsigned long addr, unsigned int esr,
 		if (call_step_hook(regs, esr) == DBG_HOOK_HANDLED)
 			return 0;
 
-		pr_warning("Unexpected kernel single-step exception at EL1\n");
-		/*
-		 * Re-enable stepping since we know that we will be
-		 * returning to regs.
-		 */
-		set_regs_spsr_ss(regs);
+		pr_warning("Unexpected kernel single-step exception at EL1, disabling stepping\n");
+		kernel_disable_single_step();
 	}
 
 	return 0;

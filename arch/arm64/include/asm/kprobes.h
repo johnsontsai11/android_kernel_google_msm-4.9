@@ -28,15 +28,16 @@
 
 #include <asm/probes.h>
 
-struct prev_kprobe {
-	struct kprobe *kp;
-	unsigned int status;
-};
-
 /* Single step context for kprobe */
 struct kprobe_step_ctx {
 	unsigned long ss_pending;
 	unsigned long match_addr;
+};
+
+struct prev_kprobe {
+	struct kprobe *kp;
+	unsigned int status;
+	struct kprobe_step_ctx ss_ctx;
 };
 
 /* per-cpu kprobe control block */
