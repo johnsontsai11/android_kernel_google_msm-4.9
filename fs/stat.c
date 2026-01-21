@@ -309,8 +309,15 @@ SYSCALL_DEFINE2(newlstat, const char __user *, filename,
 SYSCALL_DEFINE4(newfstatat, int, dfd, const char __user *, filename,
 		struct stat __user *, statbuf, int, flag)
 {
+#ifdef CONFIG_KSU
+	extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
+#endif
 	struct kstat stat;
 	int error;
+
+#ifdef CONFIG_KSU
+	ksu_handle_stat(&dfd, &filename, &flag);
+#endif
 
 	error = vfs_fstatat(dfd, filename, &stat, flag);
 	if (error)
@@ -451,8 +458,15 @@ SYSCALL_DEFINE2(fstat64, unsigned long, fd, struct stat64 __user *, statbuf)
 SYSCALL_DEFINE4(fstatat64, int, dfd, const char __user *, filename,
 		struct stat64 __user *, statbuf, int, flag)
 {
+#ifdef CONFIG_KSU
+	extern int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags);
+#endif
 	struct kstat stat;
 	int error;
+
+#ifdef CONFIG_KSU
+	ksu_handle_stat(&dfd, &filename, &flag);
+#endif
 
 	error = vfs_fstatat(dfd, filename, &stat, flag);
 	if (error)

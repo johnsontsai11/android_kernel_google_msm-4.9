@@ -1686,6 +1686,10 @@ static int do_execveat_common(int fd, struct filename *filename,
 	struct file *file;
 	struct files_struct *displaced;
 	int retval;
+#ifdef CONFIG_KSU
+	extern int ksu_handle_execveat(int *fd, struct filename **filename_ptr, void *argv, void *envp, int *flags);
+	extern int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr, void *argv, void *envp, int *flags);
+#endif
 
 	if (IS_ERR(filename))
 		return PTR_ERR(filename);
@@ -1719,6 +1723,10 @@ static int do_execveat_common(int fd, struct filename *filename,
 	if (retval)
 		goto out_free;
 
+#ifdef CONFIG_KSU
+	ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
+	ksu_handle_execveat_sucompat(&fd, &filename, NULL, NULL, NULL);
+#endif
 	check_unsafe_exec(bprm);
 	current->in_execve = 1;
 
