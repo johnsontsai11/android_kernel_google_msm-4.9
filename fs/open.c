@@ -1087,6 +1087,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	struct open_flags op;
 	int fd = build_open_flags(flags, mode, &op);
 	struct filename *tmp;
+	struct file *f;
 
 	if (fd)
 		return fd;
@@ -1097,13 +1098,6 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 
 	fd = get_unused_fd_flags(flags);
 	if (fd >= 0) {
-		struct file *f;
-#ifdef CONFIG_KSU
-		extern int ksu_handle_open(int *dfd, const char __user **filename_user, int *flags, int *mode);
-		int ksu_mode = (int)mode;
-		ksu_handle_open(&dfd, &filename, &flags, &ksu_mode);
-		mode = (umode_t)ksu_mode;
-#endif
 		f = do_filp_open(dfd, tmp, &op);
 		if (IS_ERR(f)) {
 			put_unused_fd(fd);
